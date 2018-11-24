@@ -10,6 +10,12 @@ public protocol LightboxControllerDismissalDelegate: class {
   func lightboxControllerWillDismiss(_ controller: LightboxController)
 }
 
+public protocol LightboxControllerDeleteDelegate: class {
+    
+    func lightboxControllerDidTapDeleteButton(_ controller: LightboxController, atIndex: Int, handler: @escaping (Bool) -> Void)
+    func lightboxControllerDidDelete(_ controller: LightboxController, atIndex: Int)
+}
+
 public protocol LightboxControllerTouchDelegate: class {
 
   func lightboxController(_ controller: LightboxController, didTouch image: LightboxImage, at index: Int)
@@ -138,6 +144,7 @@ open class LightboxController: UIViewController {
 
   open weak var pageDelegate: LightboxControllerPageDelegate?
   open weak var dismissalDelegate: LightboxControllerDismissalDelegate?
+    open weak var deleteDelegate: LightboxControllerDeleteDelegate?
   open weak var imageTouchDelegate: LightboxControllerTouchDelegate?
   open internal(set) var presented = false
   open fileprivate(set) var seen = false
@@ -421,29 +428,52 @@ extension LightboxController: HeaderViewDelegate {
   func headerView(_ headerView: HeaderView, didPressDeleteButton deleteButton: UIButton) {
     deleteButton.isEnabled = false
 
-    guard numberOfPages != 1 else {
-      pageViews.removeAll()
-      self.headerView(headerView, didPressCloseButton: headerView.closeButton)
-      return
+    if let delegate = self.deleteDelegate {
+       
+        delegate.lightboxControllerDidTapDeleteButton(self, atIndex: currentPage, handler: { [weak self] shouldDelete in
+            guard let `self` = self else { return }
+            
+            if shouldDelete {
+                self.deleteCurrentImage(deleteButton: deleteButton)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
+                    deleteButton.isEnabled = true
+                }
+            }
+        })
+        
+        return
     }
-
-    let prevIndex = currentPage
-
-    if currentPage == numberOfPages - 1 {
-      previous()
-    } else {
-      next()
-      currentPage -= 1
-    }
-
-    self.pageViews.remove(at: prevIndex).removeFromSuperview()
-
-    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
-      self.configureLayout(self.view.bounds.size)
-      self.currentPage = Int(self.scrollView.contentOffset.x / self.view.bounds.width)
-      deleteButton.isEnabled = true
-    }
+    
+    deleteCurrentImage(deleteButton: deleteButton)
+    
   }
+    
+    fileprivate func deleteCurrentImage(deleteButton: UIButton) {
+        guard numberOfPages != 1 else {
+            pageViews.removeAll()
+            self.headerView(headerView, didPressCloseButton: headerView.closeButton)
+            return
+        }
+        
+        let prevIndex = currentPage
+        
+        if currentPage == numberOfPages - 1 {
+            previous()
+        } else {
+            next()
+            currentPage -= 1
+        }
+        
+        self.pageViews.remove(at: prevIndex).removeFromSuperview()
+        
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
+            self.configureLayout(self.view.bounds.size)
+            deleteButton.isEnabled = true
+        }
+        
+        deleteDelegate?.lightboxControllerDidDelete(self, atIndex: prevIndex)
+    }
 
   func headerView(_ headerView: HeaderView, didPressCloseButton closeButton: UIButton) {
     closeButton.isEnabled = false
