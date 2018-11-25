@@ -109,5 +109,7 @@ extension HeaderView: LayoutConfigurable {
       x: 17,
       y: topPadding
     )
+    
+    deleteButton.isHidden = !LightboxConfig.DeleteButton.enabled
   }
 }

@@ -457,6 +457,8 @@ extension LightboxController: HeaderViewDelegate {
         }
         
         let prevIndex = currentPage
+        self.pageViews.remove(at: prevIndex).removeFromSuperview()
+        self.initialImages.remove(at: prevIndex)
         
         if currentPage == numberOfPages - 1 {
             previous()
@@ -465,7 +467,6 @@ extension LightboxController: HeaderViewDelegate {
             currentPage -= 1
         }
         
-        self.pageViews.remove(at: prevIndex).removeFromSuperview()
         
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
             self.configureLayout(self.view.bounds.size)
