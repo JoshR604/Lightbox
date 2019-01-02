@@ -452,7 +452,9 @@ extension LightboxController: HeaderViewDelegate {
     fileprivate func deleteCurrentImage(deleteButton: UIButton) {
         guard numberOfPages != 1 else {
             pageViews.removeAll()
+            deleteDelegate?.lightboxControllerDidDelete(self, atIndex: 0)
             self.headerView(headerView, didPressCloseButton: headerView.closeButton)
+
             return
         }
         
